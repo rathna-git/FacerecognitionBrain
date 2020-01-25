@@ -8,11 +8,8 @@ import SignUp from './components/SignUp/SignUp';
 import Particles from 'react-particles-js';
 import ImageLinkForm from './components/ImageLinkForm/ImageLinkForm';
 import './App.css';
-import  Clarifai from 'clarifai';
 
-const app = new Clarifai.App({
- apiKey: '70e6015e25e34b4e899e05dcd2e32ad2'
-});
+
 
 const particlesOptions = {
   	particles: {
@@ -32,23 +29,25 @@ const particlesOptions = {
     }
 }
 
+const initialState = {
+  input: '',
+  image_url: '',
+  box: {},
+  route: 'signin',
+  isSignedIn : false,
+  user :{
+    id: '',
+    name: '',
+    email: '',
+    entries: 0,
+    joined: ''
+  }
+}
+
 class App extends Component {
   constructor(){
     super();
-    this.state ={
-      input: '',
-      image_url: '',
-      box: {},
-      route: 'signin',
-      signedIn : false,
-      user :{
-        id: '',
-        name: '',
-        email: '',
-        entries: 0,
-        joined: ''
-      }
-    }
+    this.state = initialState;
   }
 
   loadUser = (data) => {
@@ -83,10 +82,14 @@ class App extends Component {
 
   onButtonSubmit = () => {
     this.setState({image_url: this.state.input})
-    app.models
-     .predict(
-       Clarifai.FACE_DETECT_MODEL,
-       this.state.input)
+      fetch('http://localhost:3000/imageurl', {
+        method: 'post',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+        input: this.state.input
+        })
+    })
+      .then(response => response.json())
       .then( response => {
         if(response) {
           fetch('http://localhost:3000/image', {
@@ -100,6 +103,7 @@ class App extends Component {
         .then(count => {
           this.setState(Object.assign(this.state.user, {entries: count}))
         })
+        .catch(console.log)
       }
         this.displayFaceBox(this.calculateFaceLocation(response))
       })
@@ -108,7 +112,8 @@ class App extends Component {
 
   onRouteChange = (route) => {
     if(route === 'signout'){
-      this.setState({isSignedIn: false});
+      this.setState(initialState);
+
     } else if (route === 'home'){
       this.setState({isSignedIn: true});
     }
@@ -128,7 +133,8 @@ class App extends Component {
         { route === 'home'
           ? <div>
               <Logo />
-              <Rank name={this.state.user.name} entries={this.state.user.entries}/>
+              <Rank name={this.state.user.name}
+                  entries={this.state.user.entries}/>
               <ImageLinkForm
                 onInputChange={this.onInputChange}
                 onButtonSubmit={this.onButtonSubmit}/>
